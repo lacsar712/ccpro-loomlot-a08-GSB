@@ -3,6 +3,7 @@
   import { api, VAT_STATUS, toLocalInput, fromLocalInput } from '../lib/api.js';
 
   let vats = [];
+  let versions = [];
   let rows = [];
   let error = '';
   let form = {
@@ -17,16 +18,59 @@
   async function load() {
     error = '';
     try {
-      [vats, rows] = await Promise.all([api('/vats'), api('/dye-lots')]);
+      [vats, versions, rows] = await Promise.all([
+        api('/vats'),
+        api('/recipe-versions?isActive=true'),
+        api('/dye-lots'),
+      ]);
       const usable = vats.filter((v) => v.status === 'ready' || v.status === 'dyeing');
       if (!form.vatId && usable.length) form.vatId = String(usable[0].id);
       else if (!form.vatId && vats.length) form.vatId = String(vats[0].id);
+      correctRecipe();
     } catch (e) {
       error = e.message;
     }
   }
 
   onMount(load);
+
+  // 与后端命中规则对账：仅列出所选染缸所属染坊的启用版本配方
+  $: selectedVat = vats.find((v) => String(v.id) === String(form.vatId));
+  $: activeVersions = selectedVat
+    ? versions.filter((x) => x.isActive && x.dyeHouseId === selectedVat.dyeHouseId)
+    : [];
+  $: recipeOptions = [...new Set(activeVersions.map((x) => x.recipeName))];
+  $: matchedVersion = activeVersions
+    .filter((x) => x.recipeName === form.recipeName)
+    .sort((a, b) => b.versionNo - a.versionNo)[0];
+
+  function enabledRecipeNames(vatId) {
+    const vat = vats.find((v) => String(v.id) === String(vatId));
+    if (!vat) return [];
+    return [
+      ...new Set(
+        versions
+          .filter((x) => x.isActive && x.dyeHouseId === vat.dyeHouseId)
+          .map((x) => x.recipeName)
+      ),
+    ];
+  }
+
+  // 新建态下保证配方名始终落在启用版本集合内（编辑态保留原值，停用项另列）
+  function correctRecipe(vatId = form.vatId) {
+    if (editing) return;
+    const opts = enabledRecipeNames(vatId);
+    if (!opts.includes(form.recipeName)) form.recipeName = opts[0] || '';
+  }
+
+  function onVatChange(e) {
+    correctRecipe(e.currentTarget.value);
+  }
+
+  function cancelEdit() {
+    editing = null;
+    correctRecipe();
+  }
 
   function vatLabel(id) {
     const v = vats.find((x) => x.id === id);
@@ -52,7 +96,6 @@
       editing = null;
       form = {
         ...form,
-        recipeName: '',
         fabricKg: 20,
         startedAt: toLocalInput(new Date().toISOString()),
       };
@@ -86,13 +129,15 @@
 </script>
 
 <h1 class="page-title">染程</h1>
-<p class="page-sub">仅 ready / dyeing 染缸可开缸；提交后染缸自动变为染色中。</p>
+<p class="page-sub">
+  仅 ready / dyeing 染缸可开缸；配方名须命中所属染坊的启用版本，布重不超过该版本单次上限。
+</p>
 
 <div class="panel" style="margin-bottom:1rem;">
   <div class="form-grid">
     <label
       >染缸
-      <select bind:value={form.vatId}>
+      <select bind:value={form.vatId} on:change={onVatChange}>
         {#each vats as v}
           <option value={String(v.id)}
             >{v.vatCode} · {VAT_STATUS[v.status] || v.status} · {v.fiberType}</option
@@ -100,15 +145,32 @@
         {/each}
       </select>
     </label>
-    <label>配方名 <input bind:value={form.recipeName} /></label>
+    <label
+      >配方名（仅启用版本）
+      <select bind:value={form.recipeName}>
+        {#each recipeOptions as name}
+          <option value={name}>{name}</option>
+        {/each}
+        {#if editing && form.recipeName && !recipeOptions.includes(form.recipeName)}
+          <option value={form.recipeName}>{form.recipeName}（已停用，保存需改选）</option>
+        {/if}
+      </select>
+    </label>
     <label>布料 kg <input type="number" step="0.1" bind:value={form.fabricKg} /></label>
     <label>开始时间 <input type="datetime-local" bind:value={form.startedAt} /></label>
     <label>操作员 <input bind:value={form.operatorName} /></label>
   </div>
+  {#if matchedVersion}
+    <p class="hint-line">
+      命中启用版本 v{matchedVersion.versionNo} · 单次布重上限 {matchedVersion.maxFabricKg} kg
+    </p>
+  {:else if !editing}
+    <p class="hint-line">该染坊暂无启用配方版本，请先在「配方版本」工序启用后再开缸。</p>
+  {/if}
   <div class="toolbar">
     <button class="btn" type="button" on:click={save}>{editing ? '保存修改' : '新建染程'}</button>
     {#if editing}
-      <button class="btn ghost" type="button" on:click={() => (editing = null)}>取消</button>
+      <button class="btn ghost" type="button" on:click={cancelEdit}>取消</button>
     {/if}
   </div>
   {#if error}<p class="err">{error}</p>{/if}

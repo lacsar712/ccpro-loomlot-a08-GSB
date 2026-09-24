@@ -10,6 +10,7 @@ from app.routers import (
     dye_lots,
     fastness_checks,
     dashboard,
+    recipe_versions,
 )
 
 app = FastAPI(title="LoomLot API", version="1.0.0")
@@ -41,6 +42,7 @@ app.include_router(vats.router)
 app.include_router(dye_lots.router)
 app.include_router(fastness_checks.router)
 app.include_router(dashboard.router)
+app.include_router(recipe_versions.router)
 
 
 @app.get("/api/health")

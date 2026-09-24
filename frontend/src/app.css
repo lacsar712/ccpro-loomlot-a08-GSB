@@ -210,6 +210,22 @@ th {
   border-color: rgba(224, 168, 74, 0.45);
 }
 
+.badge.on {
+  color: var(--ok);
+  border-color: rgba(76, 175, 130, 0.45);
+}
+
+.badge.off {
+  color: var(--warn);
+  border-color: rgba(224, 168, 74, 0.45);
+}
+
+.hint-line {
+  margin: 0 0 0.75rem;
+  color: var(--indigo-mist);
+  font-size: 0.8rem;
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;

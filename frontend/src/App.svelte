@@ -7,6 +7,7 @@
   import Login from './routes/Login.svelte';
   import Dashboard from './routes/Dashboard.svelte';
   import DyeHouses from './routes/DyeHouses.svelte';
+  import RecipeVersions from './routes/RecipeVersions.svelte';
   import Vats from './routes/Vats.svelte';
   import DyeLots from './routes/DyeLots.svelte';
   import FastnessChecks from './routes/FastnessChecks.svelte';
@@ -17,6 +18,7 @@
     '/login': Login,
     '/': wrap({ component: Dashboard, conditions: [requireAuth] }),
     '/houses': wrap({ component: DyeHouses, conditions: [requireAuth] }),
+    '/recipes': wrap({ component: RecipeVersions, conditions: [requireAuth] }),
     '/vats': wrap({ component: Vats, conditions: [requireAuth] }),
     '/lots': wrap({ component: DyeLots, conditions: [requireAuth] }),
     '/checks': wrap({ component: FastnessChecks, conditions: [requireAuth] }),

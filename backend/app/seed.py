@@ -5,8 +5,50 @@ from app.database import SessionLocal
 from app.models.dye_house import DyeHouse
 from app.models.dye_lot import DyeLot
 from app.models.fastness_check import FastnessCheck
+from app.models.recipe_version import RecipeVersion
 from app.models.user import User
 from app.models.vat import Vat
+
+
+def _seed_recipe_versions(db) -> None:
+    """种子配方版本：一启用一停用（靛蓝冷染三浸 v3 启用 / v2 停用，青蓝套染 v1 启用）。
+
+    独立判断，兼容建表前已有数据、后升级出库的库：版本表为空且有染坊时补齐。
+    """
+    if db.query(RecipeVersion).count() > 0:
+        return
+    houses = db.query(DyeHouse).order_by(DyeHouse.id).all()
+    if not houses:
+        return
+    h1 = houses[0]
+    h2 = houses[1] if len(houses) > 1 else houses[0]
+    db.add_all(
+        [
+            RecipeVersion(
+                dye_house_id=h1.id,
+                recipe_name="靛蓝冷染三浸",
+                version_no=2,
+                is_active=False,
+                max_fabric_kg=50.0,
+            ),
+            RecipeVersion(
+                dye_house_id=h1.id,
+                recipe_name="靛蓝冷染三浸",
+                version_no=3,
+                is_active=True,
+                max_fabric_kg=60.0,
+            ),
+            RecipeVersion(
+                dye_house_id=h2.id,
+                recipe_name="青蓝套染",
+                version_no=1,
+                is_active=True,
+                max_fabric_kg=25.0,
+            ),
+        ]
+    )
+    db.commit()
+    print("Recipe versions seeded (1 disabled, 2 active).")
 
 
 def seed() -> None:
@@ -121,6 +163,8 @@ def seed() -> None:
             print("Seed data inserted.")
         else:
             print("Seed skipped (data exists).")
+
+        _seed_recipe_versions(db)
     finally:
         db.close()
 

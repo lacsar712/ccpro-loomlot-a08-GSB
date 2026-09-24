@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models.dye_lot import DyeLot
 from app.models.user import User
 from app.models.vat import Vat
+from app.recipe_rules import validate_lot_against_version
 from app.schemas.dye_lot import DyeLotCreate, DyeLotUpdate, DyeLotOut
 
 router = APIRouter(prefix="/api/dye-lots", tags=["dye-lots"])
@@ -42,6 +43,7 @@ def create_dye_lot(
             status_code=409,
             detail=f"染缸状态为「{vat.status}」，仅 ready 或 dyeing 时可新建染程",
         )
+    validate_lot_against_version(db, vat, payload.recipe_name, payload.fabric_kg)
     item = DyeLot(
         vat_id=payload.vat_id,
         recipe_name=payload.recipe_name,
@@ -79,6 +81,7 @@ def update_dye_lot(
     if not item:
         raise HTTPException(status_code=404, detail="染程不存在")
     data = payload.model_dump(exclude_unset=True)
+    target_vat = item.vat
     if "vat_id" in data and data["vat_id"] != item.vat_id:
         vat = db.query(Vat).filter(Vat.id == data["vat_id"]).first()
         if not vat:
@@ -89,6 +92,16 @@ def update_dye_lot(
                 detail=f"目标染缸状态为「{vat.status}」，无法改挂染程",
             )
         vat.status = "dyeing"
+        target_vat = vat
+    # 染缸 / 配方 / 布重任一变化时，按目标染缸所属染坊重新命中启用版本并校验上限；
+    # 仅改时间、操作员等字段不重新命中，历史染程（版本已停用）仍可维护。
+    if {"vat_id", "recipe_name", "fabric_kg"} & data.keys():
+        validate_lot_against_version(
+            db,
+            target_vat,
+            data.get("recipe_name", item.recipe_name),
+            data.get("fabric_kg", item.fabric_kg),
+        )
     for k, v in data.items():
         setattr(item, k, v)
     db.commit()
