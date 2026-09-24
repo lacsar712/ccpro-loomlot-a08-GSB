@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models.dye_lot import DyeLot
 from app.models.user import User
 from app.models.vat import Vat
+from app.routers.recipe_versions import ensure_active_recipe_version
 from app.schemas.dye_lot import DyeLotCreate, DyeLotUpdate, DyeLotOut
 
 router = APIRouter(prefix="/api/dye-lots", tags=["dye-lots"])
@@ -42,6 +43,9 @@ def create_dye_lot(
             status_code=409,
             detail=f"染缸状态为「{vat.status}」，仅 ready 或 dyeing 时可新建染程",
         )
+    ensure_active_recipe_version(
+        db, vat.dye_house_id, payload.recipe_name, payload.fabric_kg
+    )
     item = DyeLot(
         vat_id=payload.vat_id,
         recipe_name=payload.recipe_name,
@@ -89,6 +93,13 @@ def update_dye_lot(
                 detail=f"目标染缸状态为「{vat.status}」，无法改挂染程",
             )
         vat.status = "dyeing"
+    eff_vat = db.query(Vat).filter(Vat.id == data.get("vat_id", item.vat_id)).first()
+    ensure_active_recipe_version(
+        db,
+        eff_vat.dye_house_id,
+        data.get("recipe_name", item.recipe_name),
+        data.get("fabric_kg", item.fabric_kg),
+    )
     for k, v in data.items():
         setattr(item, k, v)
     db.commit()

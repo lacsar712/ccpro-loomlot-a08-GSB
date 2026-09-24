@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { derived, writable } from 'svelte/store';
 
 const TOKEN_KEY = 'loomlot_token';
 const USER_KEY = 'loomlot_user';
@@ -14,6 +14,7 @@ function load(key, fallback = null) {
 
 export const token = writable(localStorage.getItem(TOKEN_KEY) || '');
 export const user = writable(load(USER_KEY));
+export const isSupervisor = derived(user, (u) => u?.role === 'admin');
 
 export function setSession(accessToken, userData) {
   localStorage.setItem(TOKEN_KEY, accessToken);

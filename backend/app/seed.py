@@ -5,6 +5,7 @@ from app.database import SessionLocal
 from app.models.dye_house import DyeHouse
 from app.models.dye_lot import DyeLot
 from app.models.fastness_check import FastnessCheck
+from app.models.recipe_version import RecipeVersion
 from app.models.user import User
 from app.models.vat import Vat
 
@@ -121,6 +122,38 @@ def seed() -> None:
             print("Seed data inserted.")
         else:
             print("Seed skipped (data exists).")
+
+        if db.query(RecipeVersion).count() == 0:
+            house = (
+                db.query(DyeHouse)
+                .filter(DyeHouse.name == "蓝靛一号坊")
+                .first()
+            )
+            if house:
+                db.add_all(
+                    [
+                        RecipeVersion(
+                            dye_house_id=house.id,
+                            recipe_name="靛蓝冷染三浸",
+                            version_no=1,
+                            is_active=True,
+                            fabric_kg_max=60.0,
+                        ),
+                        RecipeVersion(
+                            dye_house_id=house.id,
+                            recipe_name="青蓝套染",
+                            version_no=1,
+                            is_active=False,
+                            fabric_kg_max=30.0,
+                        ),
+                    ]
+                )
+                db.commit()
+                print("Recipe version seed inserted.")
+            else:
+                print("Recipe version seed skipped (dye house missing).")
+        else:
+            print("Recipe version seed skipped (data exists).")
     finally:
         db.close()
 

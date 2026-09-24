@@ -210,6 +210,18 @@ th {
   border-color: rgba(224, 168, 74, 0.45);
 }
 
+.badge.active {
+  color: var(--ok);
+  border-color: rgba(76, 175, 130, 0.45);
+  background: rgba(76, 175, 130, 0.12);
+}
+
+.badge.inactive {
+  color: var(--warn);
+  border-color: rgba(224, 168, 74, 0.45);
+  background: rgba(224, 168, 74, 0.1);
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;

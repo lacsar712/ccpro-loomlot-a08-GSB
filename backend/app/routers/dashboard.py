@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models.dye_house import DyeHouse
 from app.models.dye_lot import DyeLot
 from app.models.fastness_check import FastnessCheck
+from app.models.recipe_version import RecipeVersion
 from app.models.user import User
 from app.models.vat import Vat
 from app.schemas.dashboard import DashboardStats
@@ -35,6 +36,12 @@ def get_stats(
         checks_last_24h=(
             db.query(func.count(FastnessCheck.id))
             .filter(FastnessCheck.checked_at >= now - timedelta(hours=24))
+            .scalar()
+            or 0
+        ),
+        recipe_version_active_count=(
+            db.query(func.count(RecipeVersion.id))
+            .filter(RecipeVersion.is_active.is_(True))
             .scalar()
             or 0
         ),

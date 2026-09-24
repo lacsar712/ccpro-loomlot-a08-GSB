@@ -44,16 +44,21 @@
       <div class="n">{stats.checksLast24h}</div>
       <div class="l">近 24 时抽检</div>
     </div>
+    <div class="stat">
+      <div class="n">{stats.recipeVersionActiveCount}</div>
+      <div class="l">启用版本</div>
+    </div>
   </div>
 {/if}
 
 <div class="panel">
   <p style="margin:0 0 0.75rem;color:var(--indigo-mist);font-size:0.9rem;">
-    业务约束：仅当染缸为 <strong>ready</strong> 或 <strong>dyeing</strong> 时可新建染程；新建后染缸自动变为 dyeing。排液可用染缸「完成排液」动作。
+    业务约束：仅当染缸为 <strong>ready</strong> 或 <strong>dyeing</strong> 时可新建染程；配方名必须命中所属染坊的启用版本且布重不超过版本上限；新建后染缸自动变为 dyeing。排液可用染缸「完成排液」动作。
   </p>
   <div class="toolbar">
     <a class="btn" href="/houses" use:link>进入染坊</a>
     <a class="btn ghost" href="/vats" use:link>管理染缸</a>
+    <a class="btn ghost" href="/recipes" use:link>配方版本</a>
     <a class="btn ghost" href="/lots" use:link>登记染程</a>
     <a class="btn ghost" href="/checks" use:link>色牢度抽检</a>
   </div>

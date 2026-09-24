@@ -51,10 +51,14 @@ docker compose down
 2. **Vat** — `dyeHouseId`, `vatCode`, `fiberType`, `capacityL`, `status` ∈ `ready|dyeing|drain`
 3. **DyeLot** — `vatId`, `recipeName`, `fabricKg`, `startedAt`, `operatorName`
 4. **FastnessCheck** — `dyeLotId`, `checkedAt`, `washFastness`(1–5), `rubFastness`(>0), `tempC`, `notes`
+5. **RecipeVersion** — `dyeHouseId`, `recipeName`, `versionNo`, `isActive`, `fabricKgMax`(>0)；同坊同配方名下版本号唯一
 
 ### 规则
 
 - 仅当染缸状态为 `ready` 或 `dyeing` 时可新建染程，否则 409
+- **配方版本命中规则**：新建/更新染程时，经染缸解析所属染坊，`recipeName` 必须命中该坊一条 `isActive=true` 的版本，否则 **409**（无启用版本或版本已停用）；命中后 `fabricKg` 不得超过该版本 `fabricKgMax`，否则 **400**。新建与更新共用同一后端校验函数，前端配方下拉只列启用版本但不可替代后端校验
+- 停用版本不可再被新建/更新染程引用；历史染程不关联版本外键，仍按原 `recipeName` 文本展示
+- 版本写操作（新建/更新/删除/启停）仅染坊主管（`admin`），否则 403；操作员（`dyer`）只读版本列表，开染程同样受命中与上限约束
 - 新建染程后，染缸状态自动设为 `dyeing`
 - 可选接口：`POST /api/vats/{id}/drain` 将染缸置为 `drain`
 
@@ -65,6 +69,7 @@ docker compose down
 - `GET/POST/PUT/DELETE /api/dye-houses`
 - `GET/POST/PUT/DELETE /api/vats` · `POST /api/vats/{id}/drain`
 - `GET/POST/PUT/DELETE /api/dye-lots`
+- `GET/POST/PUT/DELETE /api/recipe-versions` · `POST /api/recipe-versions/{id}/enable|disable`（写操作仅主管）
 - `GET/POST/PUT/DELETE /api/fastness-checks`
 - `GET /api/dashboard/stats`
 
